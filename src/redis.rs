@@ -27,15 +27,12 @@ impl Redis {
     async fn add_topic(&self, topic_id: Uuid) -> Result<()> {
         let mut redis_conn = self.connection.clone();
 
-        let _: i32 = redis_conn
+        let _: (i32, i32, ()) = redis::pipe()
             .lrem(RECENT_TOPICS_KEY, 0, topic_id.as_bytes())
-            .await?;
-
-        let _: i32 = redis_conn
             .lpush(RECENT_TOPICS_KEY, topic_id.as_bytes())
+            .ltrim(RECENT_TOPICS_KEY, 0, 9)
+            .query_async(&mut redis_conn)
             .await?;
-
-        let _: () = redis_conn.ltrim(RECENT_TOPICS_KEY, 0, 9).await?;
 
         Ok(())
     }
